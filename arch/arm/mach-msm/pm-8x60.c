@@ -662,29 +662,25 @@ static bool msm_pm_power_collapse(bool from_idle)
 			((from_idle) && (MSM_PM_DEBUG_IDLE_CLOCK & msm_pm_debug_mask))) {
 			spin_lock(&clk_enable_list_lock);
 			list_for_each_entry(clk, &clk_enable_list, enable_list) {
-				if (is_xo_src(clk)) {
-					blk_xo_vddmin_count++;
-					parent_clk = clk->ops->get_parent?clk->ops->get_parent(clk):NULL;
-					if (clk->vdd_class)
-						pr_info("%s not off block xo vdig level %ld, parent clk: %s\n",
-								clk->dbg_name, clk->vdd_class->cur_level,
-								parent_clk?parent_clk->dbg_name:"none");
-					else
-						pr_info("%s not off block xo vdig level (none), parent clk: %s\n",
-								clk->dbg_name, parent_clk?parent_clk->dbg_name:"none");
-				}
+				if (clk->ops->is_local && clk->ops->is_local(clk))
+					if (is_xo_src(clk)) {
+						blk_xo_vddmin_count++;
+						parent_clk = clk->ops->get_parent?clk->ops->get_parent(clk):NULL;
+						if (clk->vdd_class)
+							pr_info("%s not off block xo vdig level %lu, parent clk: %s\n",
+									clk->dbg_name, clk->vdd_class->cur_level,
+									parent_clk?parent_clk->dbg_name:"none");
+						else
+							pr_info("%s not off block xo vdig level (none), parent clk: %s\n",
+									clk->dbg_name, parent_clk?parent_clk->dbg_name:"none");
+					}
 			}
 			spin_unlock(&clk_enable_list_lock);
 			if (blk_xo_vddmin_count)
 				pr_info("%d clks are on that block xo or vddmin\n", blk_xo_vddmin_count);
 		}
-		if ((!from_idle) && (MSM_PM_DEBUG_RPM_STAT & msm_pm_debug_mask)){
-			msm_xo_print_voters_suspend();
+		if ((!from_idle) && (MSM_PM_DEBUG_RPM_STAT & msm_pm_debug_mask))
 			msm_rpm_dump_stat();
-		}
-		if (!from_idle)
-			radio_stat_dump();
-
 	}
 
 	msm_pm_config_hw_before_power_down();
@@ -696,13 +692,8 @@ static bool msm_pm_power_collapse(bool from_idle)
 
 	if (cpu_online(cpu))
 		saved_acpuclk_rate = acpuclk_power_collapse();
-	else {
-#ifdef CONFIG_APQ8064_ONLY 
-		saved_acpuclk_rate = acpuclk_8960_power_collapse();
-#else
+	else
 		saved_acpuclk_rate = 0;
-#endif
-	}
 
 	if ((!from_idle) && (MSM_PM_DEBUG_CLOCK & msm_pm_debug_mask))
 		pr_info("CPU%u: %s: change clock rate (old rate = %lu)\n",
