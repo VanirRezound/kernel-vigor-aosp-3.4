@@ -51,6 +51,7 @@
 
 static unsigned int min_sampling_rate;
 static unsigned int skip_ondemand = 0;
+static DEFINE_PER_CPU(int, cpufreq_init_done);
 
 #define LATENCY_MULTIPLIER			(1000)
 #define MIN_LATENCY_MULTIPLIER			(100)
