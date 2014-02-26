@@ -437,10 +437,7 @@ static ssize_t pm8058_led_off_timer_store(struct device *dev,
 	led_cdev = (struct led_classdev *)dev_get_drvdata(dev);
 	ldata = container_of(led_cdev, struct pm8058_led_data, ldev);
 
-	LED_DBG_LOG("Setting %s off_timer to %d min %d sec\n",
-					   led_cdev->name, min, sec);
-
-	off_timer = min * 60 + sec;
+	off_timer = 0;
 
 	alarm_cancel(&ldata->led_alarm);
 	cancel_work_sync(&ldata->led_work);
