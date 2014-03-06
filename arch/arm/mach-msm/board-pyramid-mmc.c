@@ -114,7 +114,7 @@ static struct mmc_platform_data pyramid_wifi_data = {
 	.msmsdcc_fmin   = 400000,
 	.msmsdcc_fmid   = 24000000,
 	.msmsdcc_fmax   = 48000000,
-	.nonremovable   = 0,
+	.nonremovable   = 1,
 };
 
 int pyramid_wifi_set_carddetect(int val)
