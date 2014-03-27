@@ -2322,6 +2322,16 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return pmem_remap(&region, file, PMEM_UNMAP);
 			break;
 		}
+	case PMEM_CACHE_FLUSH:
+		{
+			struct pmem_region region;
+			DLOG("flush\n");
+			if (copy_from_user(&region, (void __user *)arg,
+						sizeof(struct pmem_region)))
+				return -EFAULT;
+			flush_pmem_file(file, region.offset, region.len);
+			break;
+		}
 	case PMEM_GET_SIZE:
 		{
 			struct pmem_region region;
@@ -2696,8 +2706,14 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	}
 
 	if (!pmem[id].reusable) {
-		pmem[id].base = allocate_contiguous_memory_nomap(pmem[id].size,
-			pmem[id].memory_type, PAGE_SIZE);
+		if (pdata->start) {
+			pr_info("%s: allocating PMEM region from hard-coded address.\n", __func__);
+			pmem[id].base = pdata->start;
+		} else {
+			pmem[id].base = allocate_contiguous_memory_nomap(pmem[id].size,
+				pmem[id].memory_type, PAGE_SIZE);
+		}
+
 		if (!pmem[id].base) {
 			pr_err("pmem: Cannot allocate from reserved memory for %s\n",
 				pdata->name);
@@ -2705,7 +2721,7 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 		}
 	}
 
-	
+
 	pmem[id].map_on_demand = pdata->map_on_demand || pdata->reusable;
 	if (pmem[id].map_on_demand) {
 		if (pmem[id].reusable) {

@@ -38,7 +38,7 @@
 #define PMEM_ALLOCATE		_IOW(PMEM_IOCTL_MAGIC, 5, unsigned int)
 #define PMEM_CONNECT		_IOW(PMEM_IOCTL_MAGIC, 6, unsigned int)
 #define PMEM_GET_TOTAL_SIZE	_IOW(PMEM_IOCTL_MAGIC, 7, unsigned int)
-#define HW3D_REVOKE_GPU		_IOW(PMEM_IOCTL_MAGIC, 8, unsigned int)
+#define PMEM_CACHE_FLUSH        _IOW(PMEM_IOCTL_MAGIC, 8, unsigned int)
 #define HW3D_GRANT_GPU		_IOW(PMEM_IOCTL_MAGIC, 9, unsigned int)
 #define HW3D_WAIT_FOR_INTERRUPT	_IOW(PMEM_IOCTL_MAGIC, 10, unsigned int)
 
@@ -98,16 +98,17 @@ enum pmem_allocator_type {
 struct android_pmem_platform_data
 {
 	const char* name;
-	
+
 	unsigned long size;
+	unsigned long start;
 
 	enum pmem_allocator_type allocator_type;
 	unsigned int quantum;
 
 	unsigned cached;
-	
+
 	unsigned buffered;
-	
+
 	unsigned memory_type;
 	int (*request_region)(void *);
 	int (*release_region)(void *);
