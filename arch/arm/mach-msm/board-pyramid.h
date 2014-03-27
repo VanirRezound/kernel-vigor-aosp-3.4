@@ -1,5 +1,6 @@
 /* Copyright (C) 2010-2011 HTC Corporation.
  * Copyright (c) 2013 Sebastian Sobczyk <sebastiansobczyk@wp.pl>
+ * Copyright (c) 2014 Sultanxda <sultanxda@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -18,6 +19,35 @@
 
 #define MSM_RAM_CONSOLE_BASE	MSM_HTC_RAM_CONSOLE_PHYS
 #define MSM_RAM_CONSOLE_SIZE	MSM_HTC_RAM_CONSOLE_SIZE
+
+/* Memory map */
+#define MSM_ION_HEAP_NUM      7
+
+#define MSM_FB_SIZE           roundup((960 * ALIGN(540, 32) * 4 * 3), 4096)
+#define MSM_SMI_SIZE          0x3900000
+#define KERNEL_SMI_SIZE       0xC00000
+#define USER_SMI_SIZE         (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
+#define MSM_PMEM_ADSP_SIZE    0x1800000
+#define MSM_ION_WB_SIZE       0x300000
+#define MSM_ION_AUDIO_SIZE    0x4CF000
+#define MSM_ION_SF_SIZE       0x2A00000
+#define MSM_ION_MM_FW_SIZE    0x200000
+#define MSM_ION_MM_SIZE       0x3400000
+#define MSM_ION_MFC_SIZE      0x300000
+
+#define MSM_SMI_BASE          0x38000000
+#define KERNEL_SMI_BASE       MSM_SMI_BASE
+#define USER_SMI_BASE         (KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
+#define MSM_ION_MM_FW_BASE    MSM_SMI_BASE
+#define MSM_ION_MM_BASE       (MSM_ION_MM_FW_BASE + MSM_ION_MM_FW_SIZE)
+#define MSM_ION_MFC_BASE      0x3B600000
+#define MSM_FB_BASE           0x3B900000
+#define MSM_ION_SF_BASE       0x40400000
+#define MSM_ION_WB_BASE       0x46400000
+#define MSM_PMEM_ADSP_BASE    0x49800000
+
+#define PHY_BASE_ADDR1        0x48000000
+#define SIZE_ADDR1            0x28000000
 
 #define PYRAMID_GPIO_KEY_POWER          (125)
 
