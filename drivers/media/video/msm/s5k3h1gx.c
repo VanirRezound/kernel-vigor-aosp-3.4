@@ -1894,6 +1894,7 @@ static int s5k3h1gx_sensor_probe(struct msm_camera_sensor_info *info,
     info->camera_main_set_probe(true);
 #endif
 
+	init_suspend();
 	s->s_init = s5k3h1gx_sensor_open_init;
 	s->s_release = s5k3h1gx_sensor_release;
 	s->s_config  = s5k3h1gx_sensor_config;
