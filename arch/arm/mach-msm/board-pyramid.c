@@ -3014,8 +3014,6 @@ static struct platform_device *pyramid_devices[] __initdata = {
 	&msm_rotator_device,
 #endif
 	&msm_kgsl_3d0,
-	&msm_kgsl_2d0,
-	&msm_kgsl_2d1,
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	&hdmi_msm_device,
 #endif
@@ -4899,8 +4897,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
-
-	msm8x60_check_2d_hardware();
 	
 	soc_platform_version = socinfo_get_platform_version();
 	if (SOCINFO_VERSION_MAJOR(soc_platform_version) == 1 &&
