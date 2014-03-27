@@ -234,6 +234,8 @@ static struct charm_platform_data mdm_platform_data = {
 	.charm_modem_off	= charm_ap2mdm_kpdpwr_off,
 };
 
+struct platform_device msm_camera_sensor_webcam;
+
 struct platform_device msm_charm_modem = {
 	.name		= "charm_modem",
 	.id		= -1,
