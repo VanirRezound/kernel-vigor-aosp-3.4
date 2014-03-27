@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -277,6 +277,7 @@ enum vidc_1080p_decode_frame{
 	VIDC_1080P_DECODE_FRAMETYPE_P          = 2,
 	VIDC_1080P_DECODE_FRAMETYPE_B          = 3,
 	VIDC_1080P_DECODE_FRAMETYPE_OTHERS     = 4,
+	VIDC_1080P_DECODE_FRAMETYPE_IDR        = 5,
 	VIDC_1080P_DECODE_FRAMETYPE_32BIT      = 0x7FFFFFFF
 };
 enum vidc_1080P_decode_frame_correct_type {
@@ -311,7 +312,6 @@ enum vidc_1080p_decode_idc_format {
 #define VIDC_1080P_PROFILE_H264_MAIN         0x00000000
 #define VIDC_1080P_PROFILE_H264_HIGH         0x00000001
 #define VIDC_1080P_PROFILE_H264_BASELINE     0x00000002
-#define VIDC_1080P_PROFILE_H264_CONSTRAINED_BASELINE     0x00000003
 
 
 enum vidc_1080p_decode{

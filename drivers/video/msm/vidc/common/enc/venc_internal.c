@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -34,13 +34,13 @@
 #include "vcd_res_tracker_api.h"
 #include "venc_internal.h"
 
-extern u32 vidc_msg_debug;
-#define DBG(x...)				\
-	if (vidc_msg_debug) {			\
-		printk(KERN_DEBUG "[VID] " x);	\
-	}
+#if DEBUG
+#define DBG(x...) printk(KERN_DEBUG x)
+#else
+#define DBG(x...)
+#endif
 
-#define ERR(x...) printk(KERN_ERR "[VID] " x)
+#define ERR(x...) printk(KERN_ERR x)
 static unsigned int vidc_mmu_subsystem[] = {
 	MSM_SUBSYSTEM_VIDEO};
 
@@ -893,17 +893,23 @@ u32 vid_enc_get_sequence_header(struct video_client_ctx *client_ctx,
 	u32 vcd_status = VCD_ERR_FAIL;
 	u32 status = true;
 
-	if (!client_ctx || !seq_header || !seq_header->bufsize)
+	if (!client_ctx ||
+			!seq_header || !seq_header->bufsize)
 		return false;
 
 	vcd_property_hdr.prop_id = VCD_I_SEQ_HEADER;
-	vcd_property_hdr.sz = sizeof(struct vcd_sequence_hdr);
+	vcd_property_hdr.sz =
+		sizeof(struct vcd_sequence_hdr);
 
-	hdr.sequence_header = seq_header->hdrbufptr;
+	hdr.sequence_header =
+		kzalloc(seq_header->bufsize, GFP_KERNEL);
+	seq_header->hdrbufptr = hdr.sequence_header;
+
+	if (!hdr.sequence_header)
+		return false;
 	hdr.sequence_header_len = seq_header->bufsize;
 	vcd_status = vcd_get_property(client_ctx->vcd_handle,
 			&vcd_property_hdr, &hdr);
-	seq_header->hdrlen = hdr.sequence_header_len;
 
 	if (vcd_status) {
 		ERR("%s(): Get VCD_I_SEQ_HEADER Failed\n",
@@ -1587,7 +1593,7 @@ u32 vid_enc_set_buffer(struct video_client_ctx *client_ctx,
 		vcd_buffer_t = VCD_BUFFER_OUTPUT;
 	}
 	length = buffer_info->sz;
-	
+	/*If buffer cannot be set, ignore */
 	if (!vidc_insert_addr_table(client_ctx, dir_buffer,
 					(unsigned long)buffer_info->pbuffer,
 					&kernel_vaddr,
@@ -1625,7 +1631,7 @@ u32 vid_enc_free_buffer(struct video_client_ctx *client_ctx,
 		dir_buffer = BUFFER_TYPE_OUTPUT;
 		buffer_vcd = VCD_BUFFER_OUTPUT;
 	}
-	
+	/*If buffer NOT set, ignore */
 	if (!vidc_delete_addr_table(client_ctx, dir_buffer,
 				(unsigned long)buffer_info->pbuffer,
 				&kernel_vaddr)) {
@@ -1665,7 +1671,7 @@ u32 vid_enc_encode_frame(struct video_client_ctx *client_ctx,
 			&phy_addr, &pmem_fd, &file,
 			&buffer_index)) {
 
-		
+		/* kernel_vaddr  is found. send the frame to VCD */
 		memset((void *)&vcd_input_buffer, 0,
 					sizeof(struct vcd_frame_data));
 
@@ -1680,7 +1686,7 @@ u32 vid_enc_encode_frame(struct video_client_ctx *client_ctx,
 		vcd_input_buffer.data_len = input_frame_info->len;
 		vcd_input_buffer.time_stamp = input_frame_info->timestamp;
 
-		
+		/* Rely on VCD using the same flags as OMX */
 		vcd_input_buffer.flags = input_frame_info->flags;
 
 		ion_flag = vidc_get_fd_info(client_ctx, BUFFER_TYPE_INPUT,
@@ -1688,7 +1694,7 @@ u32 vid_enc_encode_frame(struct video_client_ctx *client_ctx,
 				&buff_handle);
 
 		if (vcd_input_buffer.data_len > 0) {
-			if (ion_flag == CACHED && buff_handle) {
+			if (ion_flag == CACHED) {
 				msm_ion_do_cache_op(
 				client_ctx->user_ion_client,
 				buff_handle,
@@ -1723,7 +1729,6 @@ u32 vid_enc_fill_output_buffer(struct video_client_ctx *client_ctx,
 	struct file *file;
 	s32 buffer_index = -1;
 	u32 vcd_status = VCD_ERR_FAIL;
-	struct ion_handle *buff_handle = NULL;
 
 	struct vcd_frame_data vcd_frame;
 
@@ -1739,13 +1744,9 @@ u32 vid_enc_fill_output_buffer(struct video_client_ctx *client_ctx,
 
 		memset((void *)&vcd_frame, 0,
 					 sizeof(struct vcd_frame_data));
-		vidc_get_fd_info(client_ctx, BUFFER_TYPE_OUTPUT,
-				pmem_fd, kernel_vaddr, buffer_index,
-				&buff_handle);
 		vcd_frame.virtual = (u8 *) kernel_vaddr;
 		vcd_frame.frm_clnt_data = (u32) output_frame_info->clientdata;
 		vcd_frame.alloc_len = output_frame_info->sz;
-		vcd_frame.buff_ion_handle = buff_handle;
 
 		vcd_status = vcd_fill_output_buffer(client_ctx->vcd_handle,
 								&vcd_frame);
@@ -1837,8 +1838,7 @@ u32 vid_enc_set_recon_buffers(struct video_client_ctx *client_ctx,
 		}
 		control->kernel_virtual_addr = (u8 *) ion_map_kernel(
 			client_ctx->user_ion_client,
-			client_ctx->recon_buffer_ion_handle[i],
-			ionflag);
+			client_ctx->recon_buffer_ion_handle[i]);
 		if (!control->kernel_virtual_addr) {
 			ERR("%s(): get_ION_kernel virtual addr fail\n",
 				 __func__);
@@ -1868,10 +1868,9 @@ u32 vid_enc_set_recon_buffers(struct video_client_ctx *client_ctx,
 					(unsigned long *)&iova,
 					(unsigned long *)&buffer_size,
 					UNCACHED, 0);
-			if (rc || !iova) {
-				ERR(
-				"%s():ION map iommu addr fail, rc = %d, iova = 0x%lx\n",
-					__func__, rc, iova);
+			if (rc) {
+				ERR("%s():ION map iommu addr fail\n",
+					 __func__);
 				goto map_ion_error;
 			}
 			control->physical_addr =  (u8 *) iova;

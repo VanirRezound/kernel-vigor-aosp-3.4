@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -219,7 +219,6 @@ u32 vcd_init_device_context(struct vcd_drv_ctxt *drv_ctxt,
 						   VCD_DEVICE_STATE_INITING,
 						   ev_code);
 	}
-	dev_ctxt->turbo_mode_set = 0;
 
 	return rc;
 }
@@ -323,11 +322,11 @@ u32 vcd_reset_device_context(struct vcd_drv_ctxt *drv_ctxt,
 	rc = vcd_power_event(&drv_ctxt->dev_ctxt, NULL,
 						 VCD_EVT_PWR_DEV_TERM_BEGIN);
 	VCD_FAILED_RETURN(rc, "VCD_EVT_PWR_DEV_TERM_BEGIN failed");
-	if (ddl_reset_hw(0)) {
+	if (ddl_reset_hw(0))
 		VCD_MSG_HIGH("HW Reset done");
-	} else {
+	else
 		VCD_MSG_FATAL("HW Reset failed");
-	}
+
 	(void)vcd_power_event(dev_ctxt, NULL, VCD_EVT_PWR_DEV_TERM_END);
 
 	return VCD_S_SUCCESS;
@@ -537,12 +536,12 @@ static u32 vcd_init_cmn
 	*driver_handle = 0;
 
 	driver_id = 0;
-	while (driver_id < VCD_DRIVER_CLIENTS_MAX &&
+	while (driver_id < VCD_DRIVER_INSTANCE_MAX &&
 		   dev_ctxt->driver_ids[driver_id]) {
 		++driver_id;
 	}
 
-	if (driver_id == VCD_DRIVER_CLIENTS_MAX) {
+	if (driver_id == VCD_DRIVER_INSTANCE_MAX) {
 		VCD_MSG_ERROR("Max driver instances reached");
 
 		return VCD_ERR_FAIL;
@@ -759,7 +758,6 @@ static u32 vcd_open_cmn
 	client = dev_ctxt->cctxt_list_head;
 	dev_ctxt->cctxt_list_head = cctxt;
 	cctxt->next = client;
-	dev_ctxt->turbo_mode_set = 0;
 
 	*clnt_cctxt = cctxt;
 
@@ -858,7 +856,7 @@ static u32 vcd_close_in_ready
 	} else {
 		VCD_MSG_ERROR("Unsupported API in client state %d",
 				  cctxt->clnt_state.state);
-		vcd_destroy_client_context(cctxt);
+
 		rc = VCD_ERR_BAD_STATE;
 	}
 
@@ -1070,7 +1068,7 @@ static void  vcd_hw_timeout_cmn(struct vcd_drv_ctxt *drv_ctxt,
 
 	vcd_handle_device_err_fatal(dev_ctxt, NULL);
 
-	
+	/* Reset HW. */
 	(void) vcd_reset_device_context(drv_ctxt,
 		DEVICE_STATE_EVENT_NUMBER(timeout));
 }

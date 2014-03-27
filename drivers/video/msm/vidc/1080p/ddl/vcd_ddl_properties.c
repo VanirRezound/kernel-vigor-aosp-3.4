@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -293,11 +293,6 @@ static u32 ddl_set_dec_property(struct ddl_client_context *ddl,
 				frame_size->width, frame_size->height);
 			vcd_status = VCD_S_SUCCESS;
 		}
-	}
-	break;
-	case VCD_I_SET_TURBO_CLK:
-	{
-		vcd_status = VCD_S_SUCCESS;
 	}
 	break;
 	case VCD_I_BUFFER_FORMAT:
@@ -1047,11 +1042,6 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 	case VCD_REQ_PERF_LEVEL:
 		vcd_status = VCD_S_SUCCESS;
 		break;
-    case VCD_I_SET_TURBO_CLK:
-    {
-        vcd_status = VCD_S_SUCCESS;
-        break;
-    }
 	default:
 		DDL_MSG_ERROR("INVALID ID %d\n", (int)property_hdr->prop_id);
 		vcd_status = VCD_ERR_ILLEGAL_OP;
@@ -1605,7 +1595,6 @@ static u32 ddl_set_enc_dynamic_property(struct ddl_client_context *ddl,
 			vcd_status = VCD_S_SUCCESS;
 		}
 	}
-	break;
 	case VCD_I_INTRA_REFRESH:
 	{
 		struct vcd_property_intra_refresh_mb_number
@@ -1763,7 +1752,7 @@ static void ddl_set_default_enc_rc_params(
 	encoder->rc_level.frame_level_rc = true;
 	encoder->qp_range.min_qp = 0x1;
 	if (codec == VCD_CODEC_H264) {
-		encoder->qp_range.min_qp = 0x4;
+		encoder->qp_range.min_qp = 0x1;
 		encoder->qp_range.max_qp = 0x33;
 		encoder->session_qp.i_frame_qp = 0x14;
 		encoder->session_qp.p_frame_qp = 0x14;
@@ -1871,7 +1860,7 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 		if (!decoder->cont_mode)
 			min_dpb = ddl_decoder_min_num_dpb(decoder);
 		else
-			min_dpb = res_trk_get_min_dpb_count();
+			min_dpb = 5;
 		frame_size = &decoder->client_frame_size;
 		output_buf_req = &decoder->client_output_buf_req;
 		input_buf_req = &decoder->client_input_buf_req;
@@ -1884,20 +1873,7 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 		output_buf_req = &decoder->actual_output_buf_req;
 		input_buf_req = &decoder->actual_input_buf_req;
 		min_dpb = decoder->min_dpb_num;
-		if ((decoder->buf_format.buffer_format ==
-			VCD_BUFFER_FORMAT_TILE_4x2) &&
-			(frame_size->height < MDP_MIN_TILE_HEIGHT)) {
-			frame_size->height = MDP_MIN_TILE_HEIGHT;
-			ddl_calculate_stride(frame_size,
-				!decoder->progressive_only);
-			y_cb_cr_size = ddl_get_yuv_buffer_size(
-				frame_size,
-				&decoder->buf_format,
-				(!decoder->progressive_only),
-				decoder->hdr.decoding, NULL);
-			decoder->y_cb_cr_size = y_cb_cr_size;
-		} else
-			y_cb_cr_size = decoder->y_cb_cr_size;
+		y_cb_cr_size = decoder->y_cb_cr_size;
 	}
 	memset(output_buf_req, 0,
 		sizeof(struct vcd_buffer_requirement));
@@ -1998,7 +1974,7 @@ static u32 ddl_valid_buffer_requirement(struct vcd_buffer_requirement
 		req_buf_req->actual_count &&
 		!((original_buf_req->align - (u32)0x1) &
 		req_buf_req->align) &&
-		
+		/*original_buf_req->align <= req_buf_req->align,*/
 		original_buf_req->sz <= req_buf_req->sz)
 		status = true;
 	else {

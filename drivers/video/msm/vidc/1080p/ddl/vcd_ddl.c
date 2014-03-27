@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -293,11 +293,6 @@ u32 ddl_encode_start(u32 *ddl_handle, void *client_data)
 		DDL_MSG_ERROR("ddl_enc_start:Seq_hdr_alloc_failed");
 		return VCD_ERR_ALLOC_FAIL;
 	}
-	msm_ion_do_cache_op(ddl_context->video_ion_client,
-				encoder->seq_header.alloc_handle,
-				encoder->seq_header.virtual_base_addr,
-				encoder->seq_header.buffer_size,
-				ION_IOC_CLEAN_INV_CACHES);
 	if (encoder->slice_delivery_info.enable) {
 		DDL_MSG_LOW("%s: slice mode allocate memory for struct\n",
 					__func__);
@@ -471,15 +466,12 @@ u32 ddl_encode_frame(u32 *ddl_handle,
 	struct ddl_encoder_data *encoder =
 		&ddl->codec_data.encoder;
 	u32 vcd_status = VCD_S_SUCCESS;
+
 	struct vcd_transc *transc;
-	
-	if (!ddl) {
-		DDL_MSG_ERROR("ddl_enc_frame:Bad_handle");
-		return VCD_ERR_BAD_HANDLE;
-	}
-	
 	transc = (struct vcd_transc *)(ddl->client_data);
-	DDL_MSG_LOW("%s: transc = 0x%x", __func__, (u32)ddl->client_data);
+	DDL_MSG_LOW("%s: transc = 0x%x, in_use = %u",
+				 __func__, (u32)ddl->client_data, transc->in_use);
+
 	if (encoder->slice_delivery_info.enable) {
 		return ddl_encode_frame_batch(ddl_handle,
 					input_frame,
