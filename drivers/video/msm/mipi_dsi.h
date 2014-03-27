@@ -258,7 +258,8 @@ struct dsi_kickoff_action {
 typedef void (*fxn)(u32 data);
 
 #define CMD_REQ_RX	0x0001
-#define CMD_REQ_COMMIT 0x0002
+#define CMD_REQ_COMMIT	0x0002
+#define CMD_CLK_CTRL	0x0004
 #define CMD_REQ_NO_MAX_PKT_SIZE 0x0008
 
 struct dcs_cmd_req {
@@ -335,6 +336,7 @@ void mipi_dsi_turn_off_clks(void);
 void mipi_dsi_clk_cfg(int on);
 void mipi_dsi_clk_turn_on(struct msm_panel_info const *pinfo, int target_type);
 void mipi_dsi_clk_turn_off(void);
+void mipi_dsi_panel_uv(int panel_undervolt);
 
 int mipi_dsi_cmdlist_put(struct dcs_cmd_req *cmdreq);
 struct dcs_cmd_req *mipi_dsi_cmdlist_get(void);

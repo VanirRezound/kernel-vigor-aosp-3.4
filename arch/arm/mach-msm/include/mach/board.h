@@ -491,24 +491,23 @@ struct msm_panel_common_pdata {
 	void (*panel_config_gpio)(int);
 	int (*vga_switch)(int select_vga);
 	int *gpio_num;
-	int mdp_core_clk_rate;
-	unsigned num_mdp_clk;
-	int *mdp_core_clk_table;
 	u32 mdp_max_clk;
+	u32 mdp_max_bw;
+	u32 mdp_bw_ab_factor;
+	u32 mdp_bw_ib_factor;
 #ifdef CONFIG_MSM_BUS_SCALING
 	struct msm_bus_scale_pdata *mdp_bus_scale_table;
 #endif
 	int mdp_rev;
-	u32 ov0_wb_size;  
-	u32 ov1_wb_size;  
+	u32 ov0_wb_size;  /* overlay0 writeback size */
+	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+	u32 splash_screen_addr;
+	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
-	int (*mdp_color_enhance)(void);
 	int (*mdp_gamma)(void);
 };
-
-
 
 struct lcdc_platform_data {
 	int (*lcdc_gpio_config)(int on);
@@ -548,6 +547,7 @@ enum mipi_dsi_3d_ctrl {
 	FPGA_SPI_INTF,
 };
 
+/* DSI PHY configuration */
 struct mipi_dsi_phy_ctrl {
 	uint32_t regulator[5];
 	uint32_t timing[12];
@@ -579,24 +579,11 @@ struct msm_wfd_platform_data {
 struct msm_fb_platform_data {
 	int (*detect_client)(const char *name);
 	int mddi_prescan;
+	unsigned char ext_resolution;
 	int (*allow_set_offset)(void);
 	char prim_panel_name[PANEL_NAME_MAX_LEN];
 	char ext_panel_name[PANEL_NAME_MAX_LEN];
 };
-
-#define HDMI_VFRMT_640x480p60_4_3 0
-#define HDMI_VFRMT_720x480p60_16_9 2
-#define HDMI_VFRMT_1280x720p60_16_9 3
-#define HDMI_VFRMT_720x576p50_16_9 17
-#define HDMI_VFRMT_1920x1080p24_16_9 31
-#define HDMI_VFRMT_1920x1080p30_16_9 33
-
-typedef struct
-{
-	uint8_t format;
-	uint8_t reg_a3;
-	uint8_t reg_a6;
-} mhl_driving_params;
 
 struct msm_hdmi_platform_data {
 	int irq;
@@ -609,23 +596,36 @@ struct msm_hdmi_platform_data {
 	int (*gpio_config)(int on);
 	int (*init_irq)(void);
 	bool (*check_hdcp_hw_support)(void);
+	bool (*source)(void);
 	bool is_mhl_enabled;
-	mhl_driving_params *driving_params;
-	int dirving_params_count;
 };
 
 struct msm_mhl_platform_data {
 	int irq;
-	
+	/* GPIO no. for mhl intr */
 	uint32_t gpio_mhl_int;
-	
+	/* GPIO no. for mhl block reset */
 	uint32_t gpio_mhl_reset;
-	
+	/*
+	 * below gpios are specific to targets
+	 * that have the integrated MHL soln.
+	 */
+	/* GPIO no. for mhl block power */
 	uint32_t gpio_mhl_power;
-	
+	/* GPIO no. for hdmi-mhl mux */
 	uint32_t gpio_hdmi_mhl_mux;
+	bool mhl_enabled;
 };
 
+/**
+ * msm_i2c_platform_data: i2c-qup driver configuration data
+ *
+ * @active_only when set, votes when system active and removes the vote when
+ *       system goes idle (optimises for performance). When unset, voting using
+ *       runtime pm (optimizes for power).
+ * @master_id master id number of the i2c core or its wrapper (BLSP/GSBI).
+ *       When zero, clock path voting is disabled.
+ */
 struct msm_i2c_platform_data {
 	int clk_freq;
 	uint32_t rmutex;

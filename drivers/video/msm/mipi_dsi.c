@@ -1,5 +1,7 @@
 /* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
+ * Copyright (c) 2014 Sultanxda <sultanxda@gmail.com>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
  * only version 2 as published by the Free Software Foundation.
@@ -24,11 +26,15 @@
 #include <linux/uaccess.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
+#include <linux/mfd/pmic8058.h>
 #include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
 #include <mach/gpio.h>
 #include <mach/clk.h>
+#include <mach/debug_display.h>
+
+#include <../../../arch/arm/mach-msm/board-pyramid.h>
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
@@ -63,6 +69,180 @@ static struct platform_driver mipi_dsi_driver = {
 
 struct device dsi_dev;
 
+static int first_init = 1;
+
+static int panel_uv = 250;
+module_param(panel_uv, int, 0664);
+
+void mipi_dsi_panel_uv(int panel_undervolt)
+{
+	panel_uv = panel_undervolt;
+}
+
+static int mipi_dsi_panel_power(const int on)
+{
+	static bool dsi_power_on = false;
+	static struct regulator *l1_3v;
+	static struct regulator *lvs1_1v8;
+	static struct regulator *l4_1v8;
+	int rc;
+	int panel_voltage;
+	static int panel_voltage_after = 2850000;
+
+	panel_voltage = (3100000 - (panel_uv * 1000));
+
+	if (!dsi_power_on) {
+		l1_3v = regulator_get(NULL, "8901_l1");
+		if (IS_ERR_OR_NULL(l1_3v)) {
+			PR_DISP_ERR("%s: unable to get 8901_l1\n", __func__);
+			return -ENODEV;
+		}
+		if (system_rev >= 1) {
+			l4_1v8 = regulator_get(NULL, "8901_l4");
+			if (IS_ERR_OR_NULL(l4_1v8)) {
+				PR_DISP_ERR("%s: unable to get 8901_l4\n", __func__);
+				return -ENODEV;
+			}
+		} else {
+			lvs1_1v8 = regulator_get(NULL, "8901_lvs1");
+			if (IS_ERR_OR_NULL(lvs1_1v8)) {
+				PR_DISP_ERR("%s: unable to get 8901_lvs1\n", __func__);
+				return -ENODEV;
+			}
+		}
+
+		rc = regulator_set_voltage(l1_3v, 2850000, 2850000);
+		if (rc) {
+			PR_DISP_ERR("%s: error setting l1_3v voltage\n", __func__);
+			return -EINVAL;
+		}
+
+		if (system_rev >= 1) {
+			rc = regulator_set_voltage(l4_1v8, 1800000, 1800000);
+			if (rc) {
+				PR_DISP_ERR("%s: error setting l4_1v8 voltage\n", __func__);
+				return -EINVAL;
+			}
+		}
+
+		rc = gpio_request(GPIO_LCM_RST_N,
+				"LCM_RST_N");
+		if (rc) {
+			printk(KERN_ERR "%s:LCM gpio %d request"
+					"failed\n", __func__,
+					GPIO_LCM_RST_N);
+			return -EINVAL;
+		}
+
+		dsi_power_on = true;
+	}
+
+	if (dsi_power_on && (panel_voltage != 2850000)) {
+		// Do nothing if panel voltage has already been transformed
+		if (panel_voltage_after != panel_voltage) {
+			// Check if requested panel voltage is in bounds
+			if ((panel_voltage < 2400000) || (panel_voltage > 3100000)) {
+				PR_DISP_ERR("%s: %dmV is out of range\n", __func__, panel_uv);
+				PR_DISP_ERR("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
+				panel_voltage = panel_voltage_after;
+			}
+
+			// Check if requested panel voltage is a multiple
+			// of 25mV.
+			if ((panel_voltage % 25000) != 0) {
+				PR_DISP_ERR("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
+				PR_DISP_ERR("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
+				panel_voltage = panel_voltage_after;
+			}
+
+			rc = regulator_set_voltage(l1_3v, panel_voltage, panel_voltage);
+			if (rc) {
+				PR_DISP_ERR("%s: error undervolting panel\n", __func__);
+				return -EINVAL;
+			} else {
+				PR_DISP_INFO("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
+			}
+
+			panel_voltage_after = panel_voltage;
+			mipi_dsi_panel_uv((3100000 - panel_voltage_after)/1000);
+		}
+	}
+
+	if (!l1_3v || IS_ERR(l1_3v)) {
+		PR_DISP_ERR("%s: l1_3v is not initialized\n", __func__);
+		return -ENODEV;
+	}
+
+	if (system_rev >= 1) {
+		if (!l4_1v8 || IS_ERR(l4_1v8)) {
+			PR_DISP_ERR("%s: l4_1v8 is not initialized\n", __func__);
+			return -ENODEV;
+		}
+	} else {
+		if (!lvs1_1v8 || IS_ERR(lvs1_1v8)) {
+			PR_DISP_ERR("%s: lvs1_1v8 is not initialized\n", __func__);
+			return -ENODEV;
+		}
+	}
+
+	if (on) {
+		if (regulator_enable(l1_3v)) {
+			PR_DISP_ERR("%s: Unable to enable the regulator:"
+					" l1_3v\n", __func__);
+			return -ENODEV;
+		}
+		hr_msleep(5);
+
+		if (system_rev >= 1) {
+			if (regulator_enable(l4_1v8)) {
+				PR_DISP_ERR("%s: Unable to enable the regulator:"
+						" l4_1v8\n", __func__);
+				return -ENODEV;
+			}
+		} else {
+			if (regulator_enable(lvs1_1v8)) {
+				PR_DISP_ERR("%s: Unable to enable the regulator:"
+						" lvs1_1v8\n", __func__);
+				return -ENODEV;
+			}
+		}
+
+		if (!first_init) {
+			hr_msleep(10);
+			gpio_set_value(GPIO_LCM_RST_N, 1);
+			hr_msleep(1);
+			gpio_set_value(GPIO_LCM_RST_N, 0);
+			hr_msleep(1);
+			gpio_set_value(GPIO_LCM_RST_N, 1);
+			hr_msleep(20);
+		}
+	} else {
+		gpio_set_value(GPIO_LCM_RST_N, 0);
+		hr_msleep(5);
+		if (system_rev >= 1) {
+			if (regulator_disable(l4_1v8)) {
+				PR_DISP_ERR("%s: Unable to enable the regulator:"
+						" l4_1v8\n", __func__);
+				return -ENODEV;
+			}
+		} else {
+			if (regulator_disable(lvs1_1v8)) {
+				PR_DISP_ERR("%s: Unable to enable the regulator:"
+						" lvs1_1v8\n", __func__);
+				return -ENODEV;
+			}
+		}
+		hr_msleep(5);
+		if (regulator_disable(l1_3v)) {
+			PR_DISP_ERR("%s: Unable to enable the regulator:"
+					" l1_3v\n", __func__);
+			return -ENODEV;
+		}
+	}
+
+	return 0;
+}
+
 static int mipi_dsi_off(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -79,13 +259,8 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	else
 		down(&mfd->dma->mutex);
 
-	mdp4_overlay_dsi_state_set(ST_DSI_SUSPEND);
-
-
 	if (mfd->panel_info.type == MIPI_CMD_PANEL) {
 		mipi_dsi_clk_cfg(1);
-
-		
 		mipi_dsi_cmd_mdp_busy();
 	}
 	mipi_dsi_op_mode_config(DSI_CMD_MODE);
@@ -103,13 +278,13 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	ret = panel_next_off(pdev);
 
 #ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(0);
+	mdp_bus_scale_update_request(0, 0, 0, 0);
 #endif
 
 	mipi_dsi_clk_turn_off();
 
-	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-		mipi_dsi_pdata->dsi_power_save(0);
+	if (mipi_dsi_pdata)
+		mipi_dsi_panel_power(0);
 
 	if (mdp_rev >= MDP_REV_41)
 		mutex_unlock(&mfd->dma->ov_mutex);
@@ -147,8 +322,8 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	esc_byte_ratio = 2;
 #endif
 
-	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-		mipi_dsi_pdata->dsi_power_save(1);
+	if (mipi_dsi_pdata)
+		mipi_dsi_panel_power(1);
 
 	if (mdp_rev == MDP_REV_42 && mipi_dsi_pdata)
 		target_type = mipi_dsi_pdata->target_type;
@@ -293,10 +468,8 @@ static int mipi_dsi_on(struct platform_device *pdev)
 
 
 #ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(2);
+	mdp_bus_scale_update_request(2, 2, 2, 2);
 #endif
-
-	mdp4_overlay_dsi_state_set(ST_DSI_RESUME);
 
 	if (mdp_rev >= MDP_REV_41)
 		mutex_unlock(&mfd->dma->ov_mutex);
