@@ -46,6 +46,7 @@ struct msm_iommu_drvdata {
 	int ttbr_split;
 	struct clk *clk;
 	struct clk *pclk;
+	struct clk *aclk;
 	const char *name;
 	struct regulator *gdsc;
 };
