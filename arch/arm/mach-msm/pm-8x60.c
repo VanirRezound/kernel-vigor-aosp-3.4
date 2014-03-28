@@ -1179,7 +1179,9 @@ static int msm_pm_enter(suspend_state_t state)
 
 			}
 		}
+#ifdef CONFIG_MFD_PM8XXX_DEBUG
 		curr_len = pmic_vreg_dump(vreg_sleep_status_info, curr_len);
+#endif
 	}
 
 	if (smp_processor_id()) {
