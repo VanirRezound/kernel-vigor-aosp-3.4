@@ -2893,8 +2893,7 @@ early_param("pmem_adsp_size", pmem_adsp_size_setup);
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name = "pmem_adsp",
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
-	.cached = 0,
-	.map_on_demand = 1,
+	.cached = 1,
 };
 
 static struct platform_device android_pmem_adsp_device = {
