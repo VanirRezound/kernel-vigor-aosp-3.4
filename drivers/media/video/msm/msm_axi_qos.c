@@ -23,7 +23,7 @@ int add_axi_qos(void)
 	if (IS_ERR(ebi1_clk))
 		ebi1_clk = NULL;
 	else
-		clk_enable(ebi1_clk);
+		clk_prepare_enable(ebi1_clk);
 
 	return 0;
 }
@@ -41,7 +41,7 @@ void release_axi_qos(void)
 	if (!ebi1_clk)
 		return;
 
-	clk_disable(ebi1_clk);
+	clk_disable_unprepare(ebi1_clk);
 	clk_put(ebi1_clk);
 	ebi1_clk = NULL;
 }
