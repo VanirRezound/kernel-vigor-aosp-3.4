@@ -2119,6 +2119,7 @@ CONFIG_MEDIA_SUPPORT=y
 # Multimedia drivers
 #
 # CONFIG_RC_CORE is not set
+# CONFIG_VIDEOBUF2_MSM_MEM is not set
 
 #
 # Qualcomm MSM Camera And Video
@@ -2165,6 +2166,7 @@ CONFIG_MT9V113=y
 # CONFIG_OV8830 is not set
 # CONFIG_MT9D015 is not set
 # CONFIG_SP3D is not set
+CONFIG_MSM_VIDC=y
 
 #
 # Graphics support
@@ -2215,7 +2217,6 @@ CONFIG_FB_CFB_IMAGEBLIT=y
 # CONFIG_FB_VIRTUAL is not set
 # CONFIG_FB_METRONOME is not set
 # CONFIG_FB_BROADSHEET is not set
-CONFIG_MSM_VIDC=y
 CONFIG_MSM_VIDC_1080P=y
 CONFIG_MSM_VIDC_VENC=y
 CONFIG_MSM_VIDC_VDEC=y
