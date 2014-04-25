@@ -4,6 +4,7 @@
  * initial bootloader stuff..
  */
 
+#include <sm/system.h>
 
 	.set noreorder
 	.globl	__start
